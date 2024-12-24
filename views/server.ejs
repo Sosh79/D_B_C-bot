@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= serverName %> - Channels</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="app">
+        <div class="sidebar">
+            <div class="nav-item active">
+                <i class="fas fa-server"></i>
+                <%= serverName %>
+            </div>
+            <a href="/" class="nav-item">
+                <i class="fas fa-arrow-left"></i>
+                Back to Servers
+            </a>
+            <div class="channel-category">
+                <i class="fas fa-chevron-down"></i>
+                Text Channels
+            </div>
+            <% channels.forEach(channel => { %>
+                <a href="/messages/<%= serverId %>/<%= channel._id %>" class="channel-item">
+                    <i class="fas fa-hashtag"></i>
+                    <%= channel.channelName %>
+                </a>
+            <% }); %>
+        </div>
+        <div class="content">
+            <div class="header">
+                <h1><i class="fas fa-server"></i> <%= serverName %></h1>
+            </div>
+            <div class="channel-grid">
+                <% channels.forEach(channel => { %>
+                    <div class="server-card">
+                        <div class="server-header">
+                            <i class="fas fa-hashtag fa-lg"></i>
+                            <div class="server-name"><%= channel.channelName %></div>
+                        </div>
+                        <div class="channel-list">
+                            <a href="/messages/<%= serverId %>/<%= channel._id %>" class="channel-item">
+                                View Messages
+                            </a>
+                        </div>
+                    </div>
+                <% }); %>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

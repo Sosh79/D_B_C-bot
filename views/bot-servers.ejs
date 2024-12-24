@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Servers</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="app">
+        <div class="servers-sidebar">
+            <div class="server-group">
+                <a href="/" class="server-icon" title="Home">
+                    <i class="fas fa-home"></i>
+                </a>
+                <div class="server-separator"></div>
+                <% servers.forEach(server => { %>
+                    <a href="#server-<%= server.id %>" 
+                       class="server-icon" 
+                       title="<%= server.name %>"
+                       data-server-id="<%= server.id %>">
+                        <% if (server.icon) { %>
+                            <img src="<%= server.icon %>" alt="<%= server.name %>">
+                        <% } else { %>
+                            <div class="server-icon-text">
+                                <%= server.name.split(' ').map(word => word[0]).join('').slice(0, 2).toUpperCase() %>
+                            </div>
+                        <% } %>
+                        <div class="server-tooltip"><%= server.name %></div>
+                    </a>
+                <% }); %>
+            </div>
+            <div class="server-group bottom">
+                <a href="/bot-servers" class="server-icon active" title="Bot Servers">
+                    <i class="fas fa-robot"></i>
+                    <div class="server-tooltip">Bot Servers</div>
+                </a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="header">
+                <h1>
+                    <i class="fas fa-robot"></i>
+                    Bot Servers
+                </h1>
+                <div class="header-actions">
+                    <button class="refresh-btn" onclick="location.reload()">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            <% if (servers && servers.length > 0) { %>
+                <div class="servers-grid">
+                    <% servers.forEach(server => { %>
+                        <div class="server-panel" id="server-<%= server.id %>">
+                            <div class="server-panel-header">
+                                <% if (server.icon) { %>
+                                    <img src="<%= server.icon %>" alt="<%= server.name %>" class="server-panel-icon">
+                                <% } else { %>
+                                    <div class="server-panel-icon server-icon-text">
+                                        <%= server.name.split(' ').map(word => word[0]).join('').slice(0, 2).toUpperCase() %>
+                                    </div>
+                                <% } %>
+                                <div class="server-panel-name"><%= server.name %></div>
+                                <div class="server-panel-stats">
+                                    <span title="Members">
+                                        <i class="fas fa-users"></i>
+                                        <%= server.memberCount || 0 %>
+                                    </span>
+                                    <span title="Channels">
+                                        <i class="fas fa-hashtag"></i>
+                                        <%= server.channels ? server.channels.length : 0 %>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <% if (server.channels && server.channels.length > 0) { %>
+                                <div class="channels-list">
+                                    <% 
+                                    let currentCategory = null;
+                                    let categories = server.channels.filter(c => c.type === channelTypes.GUILD_CATEGORY);
+                                    let uncategorizedChannels = server.channels.filter(c => 
+                                        c.type !== channelTypes.GUILD_CATEGORY && !c.parentId
+                                    );
+                                    
+                                    // First show uncategorized channels
+                                    if (uncategorizedChannels.length > 0) { %>
+                                        <div class="channel-category">
+                                            <i class="fas fa-chevron-down"></i>
+                                            General
+                                        </div>
+                                        <% uncategorizedChannels.forEach(channel => {
+                                            let icon = 'fa-hashtag';
+                                            let isClickable = true;
+                                            
+                                            switch(channel.type) {
+                                                case channelTypes.GUILD_VOICE:
+                                                    icon = 'fa-volume-up';
+                                                    isClickable = false;
+                                                    break;
+                                                case channelTypes.GUILD_ANNOUNCEMENT:
+                                                    icon = 'fa-bullhorn';
+                                                    break;
+                                                case channelTypes.GUILD_STAGE_VOICE:
+                                                    icon = 'fa-microphone';
+                                                    isClickable = false;
+                                                    break;
+                                                case channelTypes.GUILD_FORUM:
+                                                    icon = 'fa-comments';
+                                                    isClickable = false;
+                                                    break;
+                                            }
+                                        %>
+                                            <div class="channel-item <%= isClickable ? 'clickable' : '' %>">
+                                                <i class="fas <%= icon %>"></i>
+                                                <% if (isClickable) { %>
+                                                    <a href="/messages/<%= server.id %>/<%= channel.id %>">
+                                                        <%= channel.name %>
+                                                    </a>
+                                                <% } else { %>
+                                                    <span><%= channel.name %></span>
+                                                <% } %>
+                                            </div>
+                                        <% }); 
+                                    }
+
+                                    // Then show categorized channels
+                                    categories.forEach(category => { 
+                                        let categoryChannels = server.channels.filter(c => c.parentId === category.id);
+                                    %>
+                                        <div class="channel-category">
+                                            <i class="fas fa-chevron-down"></i>
+                                            <%= category.name %>
+                                            <span class="channel-count">
+                                                <%= categoryChannels.length %>
+                                            </span>
+                                        </div>
+                                        <% categoryChannels.forEach(channel => {
+                                            let icon = 'fa-hashtag';
+                                            let isClickable = true;
+                                            
+                                            switch(channel.type) {
+                                                case channelTypes.GUILD_VOICE:
+                                                    icon = 'fa-volume-up';
+                                                    isClickable = false;
+                                                    break;
+                                                case channelTypes.GUILD_ANNOUNCEMENT:
+                                                    icon = 'fa-bullhorn';
+                                                    break;
+                                                case channelTypes.GUILD_STAGE_VOICE:
+                                                    icon = 'fa-microphone';
+                                                    isClickable = false;
+                                                    break;
+                                                case channelTypes.GUILD_FORUM:
+                                                    icon = 'fa-comments';
+                                                    isClickable = false;
+                                                    break;
+                                            }
+                                        %>
+                                            <div class="channel-item <%= isClickable ? 'clickable' : '' %>">
+                                                <i class="fas <%= icon %>"></i>
+                                                <% if (isClickable) { %>
+                                                    <a href="/messages/<%= server.id %>/<%= channel.id %>">
+                                                        <%= channel.name %>
+                                                    </a>
+                                                <% } else { %>
+                                                    <span><%= channel.name %></span>
+                                                <% } %>
+                                            </div>
+                                        <% }); 
+                                    }); %>
+                                </div>
+                            <% } else { %>
+                                <div class="no-channels">
+                                    <i class="fas fa-ghost"></i>
+                                    <p>No channels available</p>
+                                </div>
+                            <% } %>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } else { %>
+                <div class="empty-state">
+                    <i class="fas fa-robot"></i>
+                    <h2>No Servers Found</h2>
+                    <p>Add the bot to a server to get started</p>
+                </div>
+            <% } %>
+        </div>
+    </div>
+
+    <script>
+        // Add collapsible functionality to categories
+        document.querySelectorAll('.channel-category').forEach(category => {
+            category.addEventListener('click', () => {
+                category.classList.toggle('collapsed');
+                let next = category.nextElementSibling;
+                while (next && !next.classList.contains('channel-category')) {
+                    next.style.display = category.classList.contains('collapsed') ? 'none' : 'flex';
+                    next = next.nextElementSibling;
+                }
+            });
+        });
+
+        // Smooth scroll to server panel when clicking sidebar icon
+        document.querySelectorAll('.server-icon[data-server-id]').forEach(icon => {
+            icon.addEventListener('click', (e) => {
+                e.preventDefault();
+                const serverId = icon.getAttribute('data-server-id');
+                const panel = document.getElementById('server-' + serverId);
+                if (panel) {
+                    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // Add hover animation to refresh button
+        const refreshBtn = document.querySelector('.refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                refreshBtn.classList.add('spinning');
+                setTimeout(() => refreshBtn.classList.remove('spinning'), 1000);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= channelName %> - Messages</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="app">
+        <div class="sidebar">
+            <a href="/server/<%= serverId %>" class="nav-item">
+                <i class="fas fa-arrow-left"></i>
+                Back to Channels
+            </a>
+            <div class="nav-item active">
+                <i class="fas fa-hashtag"></i>
+                <%= channelName %>
+            </div>
+            <div class="channel-category">
+                <i class="fas fa-info-circle"></i>
+                Channel Info
+            </div>
+            <div class="channel-item">
+                <i class="fas fa-users"></i>
+                Members: <%= messages.reduce((acc, msg) => {
+                    if (!acc.includes(msg.authorUsername)) acc.push(msg.authorUsername);
+                    return acc;
+                }, []).length %>
+            </div>
+            <div class="channel-item">
+                <i class="fas fa-comment"></i>
+                Messages: <%= messages.length %>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="header">
+                <h1>
+                    <i class="fas fa-hashtag"></i>
+                    <%= channelName %>
+                    <span class="header-description">Welcome to #<%= channelName %>!</span>
+                </h1>
+            </div>
+
+            <div class="message-container">
+                <% 
+                let lastAuthor = null;
+                let lastTimestamp = null;
+                messages.reverse().forEach(message => { 
+                    const messageDate = new Date(message.timestamp);
+                    const showHeader = lastAuthor !== message.authorId || 
+                        (lastTimestamp && messageDate - new Date(lastTimestamp) > 5 * 60 * 1000);
+                %>
+                    <div class="message <%= showHeader ? '' : 'message-continuation' %>" id="message-<%= message.messageId %>">
+                        <% if (showHeader) { %>
+                            <div class="message-avatar">
+                                <img src="https://cdn.discordapp.com/embed/avatars/<%= message.authorId.charCodeAt(0) % 5 %>.png" 
+                                     alt="<%= message.authorUsername %>"
+                                     class="avatar-img">
+                            </div>
+                        <% } %>
+                        <div class="message-content <%= showHeader ? '' : 'message-no-avatar' %>">
+                            <% if (showHeader) { %>
+                                <div class="message-header">
+                                    <span class="message-author"><%= message.authorUsername %></span>
+                                    <% if (message.isBot) { %>
+                                        <span class="bot-tag">BOT</span>
+                                    <% } %>
+                                    <span class="message-timestamp">
+                                        <%= messageDate.toLocaleString('en-US', { 
+                                            weekday: 'long',
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        }) %>
+                                    </span>
+                                </div>
+                            <% } %>
+                            <div class="message-text">
+                                <%= message.content %>
+                                <button 
+                                    class="delete-button" 
+                                    onclick="deleteMessage('<%= message.messageId %>', '<%= channelId %>')"
+                                    title="Delete Message"
+                                >
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <% 
+                    lastAuthor = message.authorId;
+                    lastTimestamp = message.timestamp;
+                }); 
+                %>
+            </div>
+
+            <div class="message-form">
+                <form id="sendMessageForm">
+                    <input type="hidden" id="serverId" value="<%= serverId %>">
+                    <input type="hidden" id="channelId" value="<%= channelId %>">
+                    <div class="input-wrapper">
+                        <textarea 
+                            class="message-input" 
+                            id="messageContent" 
+                            placeholder="Message #<%= channelName %>" 
+                            rows="1"
+                            required
+                        ></textarea>
+                        <button type="submit" class="button button-primary send-button">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </form>
+                <div id="status" class="status-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-resize textarea
+        const textarea = document.getElementById('messageContent');
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        // Handle Enter key
+        textarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('sendMessageForm').dispatchEvent(new Event('submit'));
+            }
+        });
+
+        document.getElementById('sendMessageForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const serverId = document.getElementById('serverId').value;
+            const channelId = document.getElementById('channelId').value;
+            const message = document.getElementById('messageContent').value.trim();
+            const statusDiv = document.getElementById('status');
+
+            if (!message) return;
+
+            try {
+                const response = await fetch('/api/send-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        serverId,
+                        channelId,
+                        message
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    statusDiv.textContent = 'Message sent successfully!';
+                    statusDiv.className = 'status-message status-success';
+                    document.getElementById('messageContent').value = '';
+                    textarea.style.height = 'auto';
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                statusDiv.textContent = 'Failed to send message: ' + error.message;
+                statusDiv.className = 'status-message status-error';
+            }
+
+            statusDiv.style.display = 'block';
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        });
+
+        async function deleteMessage(messageId, channelId) {
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                const response = await fetch('/api/delete-message', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        channelId,
+                        messageId
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    const messageElement = document.getElementById(`message-${messageId}`);
+                    if (messageElement) {
+                        messageElement.style.animation = 'fadeOut 0.3s ease';
+                        setTimeout(() => messageElement.remove(), 300);
+                    }
+                    
+                    statusDiv.textContent = 'Message deleted successfully!';
+                    statusDiv.className = 'status-message status-success';
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                statusDiv.textContent = 'Failed to delete message: ' + error.message;
+                statusDiv.className = 'status-message status-error';
+            }
+
+            statusDiv.style.display = 'block';
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+
+    <style>
+        .header-description {
+            color: var(--text-muted);
+            font-size: 0.9em;
+            font-weight: normal;
+            margin-left: 12px;
+        }
+
+        .message-continuation {
+            margin-top: -4px;
+        }
+
+        .message-no-avatar {
+            margin-left: 56px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+        }
+
+        .send-button {
+            padding: 8px 12px;
+            height: 44px;
+        }
+
+        .delete-button {
+            opacity: 0;
+            transition: opacity 0.2s;
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            padding: 4px 8px;
+            margin-left: 8px;
+            border-radius: 4px;
+        }
+
+        .message:hover .delete-button {
+            opacity: 1;
+        }
+
+        .delete-button:hover {
+            background-color: var(--danger);
+            color: var(--header-primary);
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
+</body>
+</html>
