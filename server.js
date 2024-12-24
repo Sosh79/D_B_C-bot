@@ -22,31 +22,6 @@ client.once('ready', () => {
     console.log(`Discord bot logged in as ${client.user.tag}`);
 });
 
-client.on('messageCreate', async message => {
-    try {
-        if (message.author.bot) return;
-        
-        console.log('Received message:', message.content); // Debug log
-
-        const newMessage = new Message({
-            content: message.content,
-            authorId: message.author.id,
-            authorUsername: message.author.username,
-            channelId: message.channel.id,
-            channelName: message.channel.name,
-            serverId: message.guild.id,
-            serverName: message.guild.name,
-            messageId: message.id,
-            isBot: message.author.bot
-        });
-
-        const savedMessage = await newMessage.save();
-        console.log('Message saved successfully:', savedMessage); // Debug log
-    } catch (error) {
-        console.error('Error saving message:', error);
-    }
-});
-
 // Set EJS as templating engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
